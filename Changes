@@ -1,6 +1,8 @@
 Revision history for Linux-FD-Mem
 
 {{$NEXT}}
+
+0.002     2023-01-02 01:41:10+01:00 Europe/Amsterdam
           - Add flags to constructor
           - Add support for adding/getting seals
 
