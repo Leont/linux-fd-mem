@@ -37,4 +37,40 @@ to allow huge table support. If C<"huge-table"> is given one can also pass eithe
 
 =back
 
+=method seal(@flags)
+
+This is used to add a seal to the filehandle. Allowed values are:
+
+=over 4
+
+=item * C<"seal">
+
+If this is set, no further seals can be added to the filehandle.
+
+=item * C<"shrink">
+
+If this is set the file in question cannot be reduced in size.
+
+=item * C<"grow">
+
+If this is set the size of the file in question cannot be increased.
+
+=item * C<"write">
+
+If this is set you cannot modify the contents of the file. Note that shrinking or growing the size of the file is still possible and allowed, thus this seal is normally used in combination with one of the other seals.
+
+Adding this seal will fail if any writable, shared mapping exists.
+
+=item * C<"future-write">
+
+This seal is similar to C<"write"> but will allow modification via previously existing writable memory maps. It will not allow new such maps to be created.
+
+Using this seal one process can create a memory buffer that it can continue to modify while sharing that buffer on a read-only basis with other processes. This requires Linux 5.1.
+
+=back
+
+=method get_seals()
+
+This returns all the seals on the filehandle.
+
 =cut

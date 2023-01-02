@@ -45,6 +45,27 @@ static UV S_get_mem_flag(pTHX_ SV* flag_name) {
 }
 #define get_mem_flag(name) S_get_mem_flag(aTHX_ name)
 
+static const map seal_flags = {
+	{ STR_WITH_LEN("seal"), F_SEAL_SEAL },
+	{ STR_WITH_LEN("shrink"), F_SEAL_SHRINK },
+	{ STR_WITH_LEN("grow"), F_SEAL_GROW },
+	{ STR_WITH_LEN("write"), F_SEAL_WRITE },
+#ifdef F_SEAL_FUTURE_WRITE
+	{ STR_WITH_LEN("future-write"), F_SEAL_FUTURE_WRITE },
+#endif
+};
+
+static UV S_get_seal_flag(pTHX_ SV* flag_name) {
+	int i;
+	for (i = 0; i < sizeof seal_flags / sizeof *seal_flags; ++i)
+		if (strEQ(SvPV_nolen(flag_name), seal_flags[i].key))
+			return seal_flags[i].value;
+	Perl_croak(aTHX_ "No such seal '%s' known", SvPV_nolen(flag_name));
+}
+#define get_seal_flag(name) S_get_seal_flag(aTHX_ name)
+
+#define get_fd(self) PerlIO_fileno(IoOFP(sv_2io(SvRV(self))))
+
 MODULE = Linux::FD::Mem				PACKAGE = Linux::FD::Mem
 
 SV*
@@ -64,3 +85,28 @@ new(classname, name, ...)
 	OUTPUT:
 		RETVAL
 
+void
+seal(file_handle, ...)
+	SV* file_handle;
+	PREINIT:
+		int fd, seals = 0, i, ret;
+	CODE:
+	fd = get_fd(file_handle);
+	for (i = 1; i < items; i++)
+		seals |= get_seal_flag(ST(i));
+	ret = fcntl(fd, F_ADD_SEALS, seals);
+	if (ret < 0)
+		die_sys("Couldn't add seal: %s");
+
+void
+get_seals(file_handle)
+	SV* file_handle;
+	PREINIT:
+	int seals, fd, i;
+	PPCODE:
+	fd = get_fd(file_handle);
+	seals = fcntl(fd, F_GET_SEALS, 0);
+	for (i = 0; i < sizeof seal_flags / sizeof *seal_flags; ++i) {
+		if (seal_flags[i].value & seals)
+			mXPUSHp(seal_flags[i].key, seal_flags[i].length);
+	}
